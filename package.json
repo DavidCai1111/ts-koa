@@ -1,0 +1,11 @@
+{
+  "name": "ts-koa",
+  "version": "0.0.1",
+  "description": "Koa implementation in TypeScript",
+  "main": "./lib/index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "DavidCai1993",
+  "license": "MIT"
+}
