@@ -1,11 +1,12 @@
 /// <reference path="../typings/node/node.d.ts" />
-import events = require('events')
-import http = require('http')
-import utils = require('./utils')
+import * as utils from './utils'
+import {EventEmitter} from 'events'
+import * as http from 'http'
 
-class Koa extends events.EventEmitter {
+export class Koa extends EventEmitter {
   private middlewares: Array<Function>
   private server: http.Server
+
   constructor() {
     super()
     this.middlewares = []
@@ -25,10 +26,6 @@ class Koa extends events.EventEmitter {
 
   listen(port: number, callback?: Function): http.Server {
     this.server = http.createServer(this.callback())
-    return this.server.listen(port, callback = noop)
+    return this.server.listen(port, callback)
   }
 }
-
-function noop (): void {}
-
-module.exports = Koa

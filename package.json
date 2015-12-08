@@ -4,7 +4,7 @@
   "description": "Koa implementation in TypeScript",
   "main": "./lib/index.js",
   "scripts": {
-    "test": "mocha"
+    "test": "ts-node test.ts"
   },
   "author": "DavidCai1993",
   "license": "MIT"
