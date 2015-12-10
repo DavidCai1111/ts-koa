@@ -7,5 +7,8 @@
     "test": "ts-node test.ts"
   },
   "author": "DavidCai1993",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "statuses": "^1.2.1"
+  }
 }
