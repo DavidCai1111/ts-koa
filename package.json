@@ -9,6 +9,7 @@
   "author": "DavidCai1993",
   "license": "MIT",
   "dependencies": {
+    "parseurl": "^1.3.0",
     "statuses": "^1.2.1"
   }
 }
