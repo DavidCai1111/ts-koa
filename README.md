@@ -1,3 +1,3 @@
 # ts-koa
 
-Koa implementation in TypeScript
+Basic Koa implementation in TypeScript
