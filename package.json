@@ -2,7 +2,7 @@
   "name": "ts-koa",
   "version": "0.0.1",
   "description": "Koa implementation in TypeScript",
-  "main": "./lib/index.js",
+  "main": "./lib/application.js",
   "scripts": {
     "test": "ts-node test.ts"
   },

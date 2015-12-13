@@ -6,6 +6,8 @@ import * as http from 'http'
 import {empty} from 'statuses'
 import {compose} from './utils/compose'
 import {Context} from './context'
+import {Request} from './request'
+import {Response} from './response'
 
 export class Koa extends EventEmitter {
   private middlewares: Array<Function>
@@ -26,7 +28,7 @@ export class Koa extends EventEmitter {
     return (req: http.IncomingMessage, res: http.ServerResponse): void => {
       res.statusCode = 404
       const ctx = new Context(this, req, res)
-      fn(ctx).then().catch(ctx.onerror)
+      fn(ctx).then(() => this.respond(ctx)).catch(ctx.onerror)
     }
   }
 
@@ -36,8 +38,8 @@ export class Koa extends EventEmitter {
   }
 
   respond(ctx: Context): void {
-    const {res} = ctx
-    const {statusCode} = ctx.res
+    const res = ctx.res
+    const statusCode = ctx.res.statusCode
     if (empty[statusCode]) {
       ctx.body = null
       res.end()

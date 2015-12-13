@@ -1,7 +1,7 @@
 /// <reference path="../typings/node/node.d.ts" />
 'use strict'
 import {IncomingMessage} from 'http'
-const {parse} = require('parseurl')
+const parse = require('parseurl').parse
 
 export class Request {
   public request: Object

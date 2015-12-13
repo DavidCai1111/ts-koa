@@ -5,7 +5,7 @@ import {ServerResponse} from 'http'
 import * as assert from 'assert'
 import * as statuses from 'statuses'
 import {isJSON} from './utils/isJSON'
-const {getType} = require('mime-types').contentType
+const getType = require('mime-types').contentType
 
 export class Response {
   public response: Object
