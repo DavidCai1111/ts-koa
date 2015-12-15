@@ -9,9 +9,14 @@ export class Context {
   public body: Object
   public request: Request
   public response: Response
+  public originalUrl: string
+  public state: Object
+
   constructor(private application: EventEmitter, public req: http.IncomingMessage, public res: http.ServerResponse) {
     this.request = new Request(req)
     this.response = new Response(res)
+    this.originalUrl = req.url
+    this.state = {}
     return this
   }
 

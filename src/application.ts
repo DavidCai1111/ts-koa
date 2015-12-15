@@ -11,11 +11,13 @@ import {Response} from './response'
 
 export class Koa extends EventEmitter {
   private middlewares: Array<Function>
-  private server: http.Server
+  public server: http.Server
+  public env: string
 
   constructor() {
     super()
     this.middlewares = []
+    this.env = process.env.NODE_ENV || 'development'
   }
 
   use(middleware: Function): Koa {
@@ -35,6 +37,12 @@ export class Koa extends EventEmitter {
   listen(port: number, callback?: Function): http.Server {
     this.server = http.createServer(this.callback())
     return this.server.listen(port, callback)
+  }
+
+  createContext(req: http.IncomingMessage, res: http.ServerResponse): Object {
+    const context = new Context(this, req, res)
+    context.onerror = context.onerror.bind(context)
+    return context
   }
 
   respond(ctx: Context): void {
