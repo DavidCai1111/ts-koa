@@ -1,6 +1,7 @@
 /// <reference path="../typings/node/node.d.ts" />
 'use strict'
 import {IncomingMessage} from 'http'
+import {format} from 'url'
 const parse = require('parseurl').parse
 
 export class Request {
@@ -57,9 +58,37 @@ export class Request {
   }
 
   set path(val: string) {
-    const url = parse(this.req)
+    const url: any = parse(this.req)
     if (url.pathname === val) return
     url.pathname = val
     url.path = null
+  }
+
+  get querystring(): string {
+    if (!this.req) return ''
+    return parse(this.req).query || ''
+  }
+
+  set querystring(val: string) {
+    const url :any = parse(this.req)
+    if (url.search === `?${val}`) return
+    url.search = val
+    url.path = null
+
+    this.url = format(url)
+  }
+
+  get search(): string {
+    if (!this.querystring) return ''
+    return `?${this.querystring}`
+  }
+
+  set search(val: string) {
+    this.querystring = val
+  }
+
+  get idempotent(): Boolean {
+    const methods = ['GET', 'HEAD', 'PUT', 'DELETE', 'OPTIONS', 'TRACE']
+    return !!~methods.indexOf(this.method)
   }
 }

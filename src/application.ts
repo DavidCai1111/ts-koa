@@ -1,6 +1,5 @@
 /// <reference path="../typings/node/node.d.ts" />
 /// <reference path="../typings/statuses/statuses.d.ts" />
-/// <reference path="../typings/debug/debug.d.ts"/>
 'use strict'
 import {EventEmitter} from 'events'
 import * as http from 'http'
