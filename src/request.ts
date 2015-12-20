@@ -1,4 +1,3 @@
-/// <reference path="../typings/node/node.d.ts" />
 'use strict'
 import {IncomingMessage} from 'http'
 import {format} from 'url'

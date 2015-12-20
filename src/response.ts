@@ -1,5 +1,3 @@
-/// <reference path="../typings/node/node.d.ts" />
-/// <reference path="../typings/statuses/statuses.d.ts"/>
 'use strict'
 import {ServerResponse} from 'http'
 import * as assert from 'assert'

@@ -1,4 +1,3 @@
-/// <reference path="../typings/node/node.d.ts" />
 'use strict'
 import {EventEmitter} from 'events'
 import * as http from 'http'
