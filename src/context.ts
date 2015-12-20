@@ -1,19 +1,19 @@
 'use strict'
-import {EventEmitter} from 'events'
+// import {EventEmitter} from 'events'
 import * as http from 'http'
 import {Request} from './request'
 import {Response} from './response'
 import {IKoaError, Koa} from './application'
 import * as statuses from 'statuses'
-const createError = require('http-errors')
-const assert = require('http-assert')
+import * as createError from 'http-errors'
+import * as assert from 'http-assert'
 
 export class Context {
-  public body: Object
+  public body: any
   public request: Request
   public response: Response
   public originalUrl: string
-  public state: Object
+  public state: any
   public name: string
 
   constructor(private application: Koa, public req: http.IncomingMessage, public res: http.ServerResponse) {
@@ -35,7 +35,7 @@ export class Context {
     this.res.end(msg)
   }
 
-  toJSON(): Object {
+  toJSON(): any {
     return {
       originalUrl: this.originalUrl,
       req: '<original node req>',
@@ -44,7 +44,7 @@ export class Context {
     }
   }
 
-  inspect(): Object {
+  inspect(): any {
     return this.toJSON()
   }
 

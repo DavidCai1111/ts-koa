@@ -17,11 +17,11 @@ export class Response {
     this._explicitStatus = false
   }
 
-  get header(): Object {
+  get header(): any {
     return this.res._headers || {} // NOTE: Private property
   }
 
-  get headers(): Object {
+  get headers(): any {
     return this.header
   }
 
@@ -75,12 +75,12 @@ export class Response {
     }
   }
 
-  get body(): Object {
+  get body(): any {
     return this._body
   }
 
-  set body(val: Object) {
-    const original: Object = this._body
+  set body(val: any) {
+    // const original: any = this._body
     this._body = val
 
     if (val === null) {
