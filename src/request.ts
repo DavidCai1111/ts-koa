@@ -3,8 +3,12 @@ import {IncomingMessage, ServerResponse} from 'http'
 import {Socket} from 'net'
 import {format} from 'url'
 import {Koa} from './application'
+import {Context} from './context'
 const qs = require('parseurl')
 const fresh = require('fresh')
+const contentType = require('content-type')
+const accepts = require('accepts')
+const typeis = require('type-is')
 
 const parse = qs.parse
 const stringify = qs.stringify
@@ -12,7 +16,7 @@ const stringify = qs.stringify
 export class Request {
   private _querycache: string
 
-  constructor(public app: Koa, public req: IncomingMessage, public res: ServerResponse) {}
+  constructor(public app: Koa, public req: IncomingMessage, public ctx: Context) {}
 
   get(field: string): string {
     const req = this.req
@@ -145,7 +149,95 @@ export class Request {
 
   get fresh(): Boolean {
     const method = this.method
-    const status = this.res.status
-    return true
+    const status = this.ctx.response.status
+
+    // GET or HEAD for weak freshness validation only
+    if ('GET' != method && 'HEAD' != method) return false
+
+    // 2xx or 304 as per rfc2616 14.26
+    if ((status >= 200 && status < 300) || 304 == status) {
+      return fresh(this.header, this.ctx.response.header)
+    }
+
+    return false
+  }
+
+  get stale(): Boolean {
+    return !this.fresh
+  }
+
+  get charset(): string {
+    const type = this.get('Content-Type')
+    if (!type) return ''
+    return contentType.parse(type).parameters.charset || ''
+  }
+
+  get secure(): Boolean {
+    return this.protocol === 'https'
+  }
+
+  get ips(): Array<string> {
+    const proxy = this.app.proxy
+    const val = this.get('X-Forwarded-For')
+    return proxy && val
+      ? val.split(/\s*,\s*/)
+      : []
+  }
+
+  get ip(): string {
+    return this.ips[0] || this.socket.remoteAddress || ''
+  }
+
+  get subdomains(): Array<string> {
+    const offset = this.app.subdomainOffset
+    return (this.host || '')
+      .split('.')
+      .reverse()
+      .slice(offset)
+  }
+
+  get accept(): any {
+    return accepts(this.req)
+  }
+
+  get type(): string {
+    const type = this.get('Content-Type')
+    if (!type) return ''
+    return type.split(';')[0]
+  }
+
+  accepts(): any {
+    return this.accept.types.apply(this.accept, arguments)
+  }
+
+  acceptsEncodings(): any {
+    return this.accept.encodings.apply(this.accept, arguments);
+  }
+
+  acceptsCharsets(): any {
+    return this.accept.charsets.apply(this.accept, arguments);
+  }
+
+  acceptsLanguages(): any {
+    return this.accept.languages.apply(this.accept, arguments);
+  }
+
+  is(types: any): any {
+    if (!types) return typeis(this.req)
+    if (!Array.isArray(types)) types = [].slice.call(arguments)
+    return typeis(this.req, types)
+  }
+
+  toJSON(): Object {
+    return {
+      method: this.method,
+      url: this.url,
+      header: this.header
+    }
+  }
+
+  inspect(): any {
+    if (!this.req) return
+    return this.toJSON()
   }
 }

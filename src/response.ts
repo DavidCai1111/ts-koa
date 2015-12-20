@@ -3,16 +3,26 @@ import {ServerResponse} from 'http'
 import * as assert from 'assert'
 import * as statuses from 'statuses'
 import {isJSON} from './utils/isJSON'
+import {Koa} from './application'
+import {Context} from './context'
 const getType = require('mime-types').contentType
 
+
 export class Response {
-  public response: Object
   private _body: Object
   private _explicitStatus: Boolean
 
-  constructor(public res: ServerResponse) {
+  constructor(public app: Koa, public res: ServerResponse, public ctx: Context) {
     this._body = null
     this._explicitStatus = false
+  }
+
+  get header(): Object {
+    return this.res._headers || {} // NOTE: Private property
+  }
+
+  get headers(): Object {
+    return this.header
   }
 
   get status(): number {

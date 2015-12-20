@@ -17,8 +17,8 @@ export class Context {
   public name: string
 
   constructor(private application: Koa, public req: http.IncomingMessage, public res: http.ServerResponse) {
-    this.request = new Request(application, req, res)
-    this.response = new Response(res)
+    this.request = new Request(application, req, this)
+    this.response = new Response(application, res, this)
     this.originalUrl = req.url
     this.state = {}
   }
