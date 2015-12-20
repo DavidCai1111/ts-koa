@@ -1,11 +1,18 @@
 'use strict'
-import {IncomingMessage} from 'http'
+import {IncomingMessage, ServerResponse} from 'http'
+import {Socket} from 'net'
 import {format} from 'url'
-const parse = require('parseurl').parse
+import {Koa} from './application'
+const qs = require('parseurl')
+const fresh = require('fresh')
+
+const parse = qs.parse
+const stringify = qs.stringify
 
 export class Request {
-  public request: Object
-  constructor(public req: IncomingMessage) {}
+  private _querycache: string
+
+  constructor(public app: Koa, public req: IncomingMessage, public res: ServerResponse) {}
 
   get(field: string): string {
     const req = this.req
@@ -48,8 +55,17 @@ export class Request {
     this.req.url = val
   }
 
+  get origin(): string {
+    return `${this.protocol}://${this.host}`
+  }
+
   get originalUrl(): string {
     return this.req.url
+  }
+
+  get href(): string {
+    if (/^https?:\/\//i.test(this.originalUrl)) return this.originalUrl
+    return `${this.origin}${this.originalUrl}`
   }
 
   get path(): string {
@@ -77,6 +93,16 @@ export class Request {
     this.url = format(url)
   }
 
+  get query(): Object {
+    const querystring = this.querystring
+    const cache: Object = this._querycache || {}
+    return cache[querystring] || (cache[querystring] = parse(querystring))
+  }
+
+  set query(obj: Object) {
+    this.querystring = stringify(obj)
+  }
+
   get search(): string {
     if (!this.querystring) return ''
     return `?${this.querystring}`
@@ -89,5 +115,37 @@ export class Request {
   get idempotent(): Boolean {
     const methods = ['GET', 'HEAD', 'PUT', 'DELETE', 'OPTIONS', 'TRACE']
     return !!~methods.indexOf(this.method)
+  }
+
+  get socket(): any {
+    return this.req.socket
+  }
+
+  get protocol(): string {
+    const proxy = this.app.proxy
+    if (this.socket.encrypted) return 'https'
+    if (!proxy) return 'http'
+    const proto = this.get('X-Forwarded-Proto') || 'http'
+    return proto.split(/\s*,\s*/)[0]
+  }
+
+  get host(): string {
+    const proxy = this.app.proxy
+    let host = proxy && this.get('X-Forwarded-Host')
+    host = host || this.get('Host')
+    if (!host) return ''
+    return host.split(/\s*,\s*/)[0]
+  }
+
+  get hostname(): string {
+    const host = this.host
+    if (!host) return ''
+    return host.split(':')[0]
+  }
+
+  get fresh(): Boolean {
+    const method = this.method
+    const status = this.res.status
+    return true
   }
 }

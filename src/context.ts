@@ -3,6 +3,7 @@ import {EventEmitter} from 'events'
 import * as http from 'http'
 import {Request} from './request'
 import {Response} from './response'
+import {IKoaError, Koa} from './application'
 import * as statuses from 'statuses'
 const createError = require('http-errors')
 const assert = require('http-assert')
@@ -13,16 +14,16 @@ export class Context {
   public response: Response
   public originalUrl: string
   public state: Object
+  public name: string
 
-  constructor(private application: EventEmitter, public req: http.IncomingMessage, public res: http.ServerResponse) {
-    this.request = new Request(req)
+  constructor(private application: Koa, public req: http.IncomingMessage, public res: http.ServerResponse) {
+    this.request = new Request(application, req, res)
     this.response = new Response(res)
     this.originalUrl = req.url
     this.state = {}
-    return this
   }
 
-  onerror(err: any) {
+  onerror(err: IKoaError): void {
     this.application.emit('error', err)
 
     this.response.type = 'text'
@@ -43,11 +44,15 @@ export class Context {
     }
   }
 
-  throw(): void {
+  inspect(): Object {
+    return this.toJSON()
+  }
+
+  throw(code?: number, message?: any): void {
     throw createError.apply(null, arguments)
   }
 
-  assert():void {
+  assert(): void {
     assert.apply(null, arguments)
   }
 }

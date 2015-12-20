@@ -9,10 +9,25 @@ import {Request} from './request'
 import {Response} from './response'
 import {isJSON} from './utils/isJSON'
 
+export interface IHttpCallback {
+  (req: http.IncomingMessage, res: http.ServerResponse): void
+}
+
+export interface IKoaMiddleware {
+  (ctx: Context, next: Function): any
+}
+
+export interface IKoaError extends Error {
+  status: number
+  expose: Boolean
+  code: any
+}
+
 export class Koa extends EventEmitter {
   private middlewares: Array<Function>
-  private subdomainOffset: number
-  private proxy: Boolean
+  public keys: Array<string> // TODO
+  public subdomainOffset: number
+  public proxy: Boolean
   public server: http.Server
   public env: string
 
@@ -24,12 +39,12 @@ export class Koa extends EventEmitter {
     this.env = process.env.NODE_ENV || 'development'
   }
 
-  use(middleware: Function): Koa {
+  use(middleware: IKoaMiddleware): Koa {
     this.middlewares.push(middleware)
     return this
   }
 
-  callback(): any {
+  callback(): IHttpCallback {
     const fn = compose(this.middlewares)
     return (req: http.IncomingMessage, res: http.ServerResponse): void => {
       res.statusCode = 404
@@ -43,13 +58,13 @@ export class Koa extends EventEmitter {
     return this.server.listen(port, callback)
   }
 
-  createContext(req: http.IncomingMessage, res: http.ServerResponse): Object {
+  private createContext(req: http.IncomingMessage, res: http.ServerResponse): Object {
     const context = new Context(this, req, res)
     context.onerror = context.onerror.bind(context)
     return context
   }
 
-  respond(ctx: Context): void {
+  private respond(ctx: Context): any {
     const res = ctx.res
     const code = ctx.res.statusCode
     let body = ctx.body
@@ -90,9 +105,9 @@ export class Koa extends EventEmitter {
     return this.toJSON()
   }
 
-  onerror(err: any): void {
+  private onerror(err: IKoaError): void {
     if (err.status === 404 || err.expose) return
     const message: string = err.stack || err.toString()
-    console.error(`\n${message.replace(/^/gm, ' ')}`)
+    console.error(`\n${message.replace(/^/gm, ' ')}\n`)
   }
 }
