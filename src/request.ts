@@ -1,6 +1,6 @@
 'use strict'
-import {IncomingMessage, ServerResponse} from 'http'
-import {Socket} from 'net'
+import {IncomingMessage} from 'http'
+// import {Socket} from 'net'
 import {format} from 'url'
 import {Koa} from './application'
 import {Context} from './context'
@@ -29,11 +29,11 @@ export class Request {
     }
   }
 
-  get headers(): Object {
+  get headers(): any {
     return this.req.headers
   }
 
-  get header(): Object {
+  get header(): any {
     return this.req.headers
   }
 
@@ -89,7 +89,7 @@ export class Request {
   }
 
   set querystring(val: string) {
-    const url :any = parse(this.req)
+    const url: any = parse(this.req)
     if (url.search === `?${val}`) return
     url.search = val
     url.path = null
@@ -97,13 +97,13 @@ export class Request {
     this.url = format(url)
   }
 
-  get query(): Object {
+  get query(): any {
     const querystring = this.querystring
     const cache: Object = this._querycache || {}
     return cache[querystring] || (cache[querystring] = parse(querystring))
   }
 
-  set query(obj: Object) {
+  set query(obj: any) {
     this.querystring = stringify(obj)
   }
 
@@ -152,10 +152,10 @@ export class Request {
     const status = this.ctx.response.status
 
     // GET or HEAD for weak freshness validation only
-    if ('GET' != method && 'HEAD' != method) return false
+    if ('GET' !== method && 'HEAD' !== method) return false
 
     // 2xx or 304 as per rfc2616 14.26
-    if ((status >= 200 && status < 300) || 304 == status) {
+    if ((status >= 200 && status < 300) || 304 === status) {
       return fresh(this.header, this.ctx.response.header)
     }
 
@@ -228,7 +228,7 @@ export class Request {
     return typeis(this.req, types)
   }
 
-  toJSON(): Object {
+  toJSON(): any {
     return {
       method: this.method,
       url: this.url,

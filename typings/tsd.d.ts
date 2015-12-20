@@ -2,3 +2,4 @@
 /// <reference path="node/node.d.ts" />
 /// <reference path="http-errors/http-errors.d.ts" />
 /// <reference path="typescript/typescript.d.ts" />
+/// <reference path="content-type/content-type.d.ts" />
