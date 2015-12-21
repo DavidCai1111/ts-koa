@@ -2,11 +2,16 @@
 import {ServerResponse} from 'http'
 import * as assert from 'assert'
 import * as statuses from 'statuses'
+import {Socket} from 'net'
+import {extname} from 'path'
 import {isJSON} from './utils/isJSON'
 import {Koa} from './application'
 import {Context} from './context'
-const getType = require('mime-types').contentType
 
+const getType = require('mime-types').contentType
+const vary = require('vary')
+const contentDisposition = require('content-disposition')
+const typeis = require('type-is')
 
 export class Response {
   private _body: Object
@@ -15,6 +20,10 @@ export class Response {
   constructor(public app: Koa, public res: ServerResponse, public ctx: Context) {
     this._body = null
     this._explicitStatus = false
+  }
+
+  get socket(): Socket {
+    return this.ctx.request.socket
   }
 
   get header(): any {
@@ -45,21 +54,6 @@ export class Response {
     this.res.statusMessage = val
   }
 
-  get(field: string): string {
-    field = field.toLowerCase()
-    return this.res.getHeader(field) || ''
-  }
-
-  set(field: string, vals: Array<Object>) {
-    for (let val of vals) {
-      this.res.setHeader(field, String(val))
-    }
-  }
-
-  remove(field: string): void {
-    this.res.removeHeader(field)
-  }
-
   get type(): string {
     const type = this.get('Content-Type')
     if (!type) return ''
@@ -69,7 +63,7 @@ export class Response {
   set type(val: string) {
     const type: string = getType(val)
     if (type) {
-      this.set('Content-Type', [val])
+      this.set('Content-Type', val)
     } else {
       this.remove('Content-Type')
     }
@@ -95,15 +89,15 @@ export class Response {
     const setType: Boolean = !this.get('Content-Type')
 
     if (typeof val === 'string') {
-      if (setType) this.set('Content-Type', [/^\s*</.test(String(val)) ? 'html' : 'text'])
+      if (setType) this.set('Content-Type', /^\s*</.test(String(val)) ? 'html' : 'text')
 
-      this.set('Content-Length', [String(Buffer.byteLength(String(val)))])
+      this.set('Content-Length', String(Buffer.byteLength(String(val))))
       return
     }
 
     if (Buffer.isBuffer(val)) {
-      if (setType) this.set('Content-Type', ['bin'])
-      this.set('Content-Length', [String(val.length)])
+      if (setType) this.set('Content-Type', 'bin')
+      this.set('Content-Length', String(val.length))
       return
     }
 
@@ -126,6 +120,112 @@ export class Response {
   }
 
   set length(val: number) {
-    this.set('Content-Length', [val])
+    this.set('Content-Length', String(val))
+  }
+
+  get headerSent(): Boolean {
+    return this.res.headersSent
+  }
+
+  get lastModified() {
+    const date = this.get('last-modified')
+    if (date) return new Date(date)
+  }
+
+  set lastModified(val: Date) {
+    this.set('Last-Modified', val.toUTCString())
+  }
+
+  get etag() {
+    return this.get('ETag')
+  }
+
+  set etag(val: string) {
+    if (!/^(W\/)?"/.test(val)) val = `"${val}"`
+    this.set('ETag', val)
+  }
+
+  get writeable(): Boolean {
+    const socket = this.socket
+    if (!socket) return false
+    return socket.writable
+  }
+
+  vary(field: string): void {
+    vary(this.res, field)
+  }
+
+  is(types: any): any {
+    const type = this.type
+    if (!types) return type || false
+    if (!Array.isArray(types)) types = [].slice.call(arguments)
+    return typeis(type, types)
+  }
+
+  redirect(url: string, alt: string): void {
+    if (url === 'back') url = this.ctx.request.get('Referrer') || alt || '/'
+    this.set('Location', url)
+
+    if (!statuses.redirect[this.status]) this.status = 302
+    if (this.ctx.request.accept('html')) {
+      this.type = 'text/html; charset=utf-8'
+      this.body = `Redirecting to <a href="${url}">${url}</a>.`
+      return
+    }
+
+    this.type = 'text/plain; charset=utf-8'
+    this.body = `Redirecting to ${url}.`
+  }
+
+  attachment(filename?: string): void {
+    if (filename) this.type = extname(filename)
+    this.set('Content-Disposition', contentDisposition(filename))
+  }
+
+  get(field: string): string {
+    field = field.toLowerCase()
+    return this.res.getHeader(field) || ''
+  }
+
+  set(field: any, val: any) {
+    if (2 === arguments.length) {
+      if (Array.isArray(val)) val = val.map(String)
+      else val = String(val)
+      this.res.setHeader(field, val)
+    } else {
+      for (const key in field) {
+        this.set(key, field[key])
+      }
+    }
+  }
+
+  remove(field: string): void {
+    this.res.removeHeader(field)
+  }
+
+  append(field: string, val: any) {
+    const prev = this.get(field)
+
+    if (prev) {
+      val = Array.isArray(prev)
+        ? prev.concat(val)
+        : [prev].concat(val)
+    }
+    return this.set(field, val)
+  }
+
+  toJSON(): any {
+    return {
+      status: this.status,
+      message: this.message,
+      header: this.header
+    }
+  }
+
+  inspect(): any {
+    if (!this.res) return
+    const object = this.toJSON()
+    object.body = this.body
+    return object
   }
 }

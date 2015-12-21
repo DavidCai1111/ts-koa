@@ -473,6 +473,7 @@ declare module "http" {
     }
     export interface ServerResponse extends events.EventEmitter, stream.Writable {
         _headers: string
+        headersSent: Boolean
         // Extended base methods
         write(buffer: Buffer): boolean;
         write(buffer: Buffer, cb?: Function): boolean;
@@ -1078,6 +1079,7 @@ declare module "dgram" {
     export function createSocket(type: string, callback?: (msg: Buffer, rinfo: RemoteInfo) => void): Socket;
 
     interface Socket extends events.EventEmitter {
+        writeable: Boolean
         send(buf: Buffer, offset: number, length: number, port: number, address: string, callback?: (error: Error, bytes: number) => void): void;
         bind(port: number, address?: string, callback?: () => void): void;
         close(): void;

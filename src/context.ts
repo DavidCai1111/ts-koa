@@ -37,6 +37,8 @@ export class Context {
 
   toJSON(): any {
     return {
+      request: this.request.toJSON(),
+      response: this.response.toJSON(),
       originalUrl: this.originalUrl,
       req: '<original node req>',
       res: '<original node res>',
@@ -48,7 +50,7 @@ export class Context {
     return this.toJSON()
   }
 
-  throw(code?: number, message?: any): void {
+  throw(): void {
     throw createError.apply(null, arguments)
   }
 
