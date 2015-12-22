@@ -1,65 +1,84 @@
 'use strict'
-import {ServerResponse} from 'http'
+import {ServerResponse, IncomingMessage} from 'http'
 import * as assert from 'assert'
 import * as statuses from 'statuses'
 import {Socket} from 'net'
 import {extname} from 'path'
 import {isJSON} from './utils/isJSON'
 import {Koa} from './application'
-import {Context} from './context'
+import {IContext} from './context'
+import {IRequest} from './request'
 
 const getType = require('mime-types').contentType
 const vary = require('vary')
 const contentDisposition = require('content-disposition')
 const typeis = require('type-is')
 
-export class Response {
-  private _body: Object
-  private _explicitStatus: Boolean
+export interface IResponse {
+  _body?: any
+  _explicitStatus?: Boolean
+  app?: Koa
+  res?: ServerResponse
+  req?: IncomingMessage
+  ctx?: IContext
+  request?: IRequest
+  socket?: Socket
+  header?: any
+  headers?: any
+  status?: number
+  message?: string
+  type?: string
+  body?: any
+  length?: number
+  headerSent?: Boolean
+  lastModified?: Date
+  etag?: string
+  writeable?: Boolean
+  is?: (types: any) => any
+  redirect?: (url: string, alt: string) => void
+  attachment?: (filename?: string) => void
+  vary?: (field: string) => void
+  get?: (field: string) => string
+  set?: (field: any, val: any) => void
+  remove?: (field: string) => void
+  append?: (field: string, val: any) => void
+  toJSON?: () => any
+  inspect?: () => any
+}
 
-  constructor(public app: Koa, public res: ServerResponse, public ctx: Context) {
-    this._body = null
-    this._explicitStatus = false
-  }
-
+export const koaResponse: IResponse = {
+  _body: null,
+  _explicitStatus: false,
   get socket(): Socket {
     return this.ctx.request.socket
-  }
-
+  },
   get header(): any {
     return this.res._headers || {} // NOTE: Private property
-  }
-
+  },
   get headers(): any {
     return this.header
-  }
-
+  },
   get status(): number {
     return this.res.statusCode
-  }
-
+  },
   set status(code: number) {
     assert(statuses[code], `Invaild status code: ${code}`)
     this._explicitStatus = true
     this.res.statusCode = code
     this.res.statusMessage = statuses[code]
     if (this._body || statuses.empty[code]) this._body = null
-  }
-
+  },
   get message(): string {
     return this.res.statusMessage
-  }
-
+  },
   set message(val: string) {
     this.res.statusMessage = val
-  }
-
+  },
   get type(): string {
     const type = this.get('Content-Type')
     if (!type) return ''
     return type.split(';')[0]
-  }
-
+  },
   set type(val: string) {
     const type: string = getType(val)
     if (type) {
@@ -67,12 +86,10 @@ export class Response {
     } else {
       this.remove('Content-Type')
     }
-  }
-
+  },
   get body(): any {
     return this._body
-  }
-
+  },
   set body(val: any) {
     // const original: any = this._body
     this._body = val
@@ -102,8 +119,7 @@ export class Response {
     }
 
     this.remove('Content-Length')
-  }
-
+  },
   get length(): number {
     const length = this.get('Content-Length')
     const body = this.body
@@ -117,52 +133,42 @@ export class Response {
     }
 
     return ~~length
-  }
-
+  },
   set length(val: number) {
     this.set('Content-Length', String(val))
-  }
-
+  },
   get headerSent(): Boolean {
     return this.res.headersSent
-  }
-
+  },
   get lastModified() {
     const date = this.get('last-modified')
     if (date) return new Date(date)
-  }
-
+  },
   set lastModified(val: Date) {
     this.set('Last-Modified', val.toUTCString())
-  }
-
+  },
   get etag() {
     return this.get('ETag')
-  }
-
+  },
   set etag(val: string) {
     if (!/^(W\/)?"/.test(val)) val = `"${val}"`
     this.set('ETag', val)
-  }
-
+  },
   get writeable(): Boolean {
     const socket = this.socket
     if (!socket) return false
     return socket.writable
-  }
-
-  vary(field: string): void {
+  },
+  vary: (field: string) => {
     vary(this.res, field)
-  }
-
-  is(types: any): any {
+  },
+  is: (types: any) => {
     const type = this.type
     if (!types) return type || false
     if (!Array.isArray(types)) types = [].slice.call(arguments)
     return typeis(type, types)
-  }
-
-  redirect(url: string, alt: string): void {
+  },
+  redirect: (url: string, alt: string) => {
     if (url === 'back') url = this.ctx.request.get('Referrer') || alt || '/'
     this.set('Location', url)
 
@@ -175,35 +181,33 @@ export class Response {
 
     this.type = 'text/plain; charset=utf-8'
     this.body = `Redirecting to ${url}.`
-  }
-
-  attachment(filename?: string): void {
+  },
+  attachment: (filename?: string) => {
     if (filename) this.type = extname(filename)
     this.set('Content-Disposition', contentDisposition(filename))
-  }
-
-  get(field: string): string {
+  },
+  get: (field: string) => {
     field = field.toLowerCase()
     return this.res.getHeader(field) || ''
-  }
-
-  set(field: any, val: any) {
+  },
+  set: (field: any, val: any) => {
     if (2 === arguments.length) {
-      if (Array.isArray(val)) val = val.map(String)
-      else val = String(val)
+      if (Array.isArray(val)) {
+        val = val.map(String)
+      } else {
+        val = String(val)
+      }
       this.res.setHeader(field, val)
     } else {
-      for (const key in field) {
+      for (const key of field) {
         this.set(key, field[key])
       }
     }
-  }
-
-  remove(field: string): void {
+  },
+  remove: (field: string) => {
     this.res.removeHeader(field)
-  }
-
-  append(field: string, val: any) {
+  },
+  append: (field: string, val: any) => {
     const prev = this.get(field)
 
     if (prev) {
@@ -212,17 +216,15 @@ export class Response {
         : [prev].concat(val)
     }
     return this.set(field, val)
-  }
-
-  toJSON(): any {
+  },
+  toJSON: () => {
     return {
       status: this.status,
       message: this.message,
       header: this.header
     }
-  }
-
-  inspect(): any {
+  },
+  inspect: () => {
     if (!this.res) return
     const object = this.toJSON()
     object.body = this.body

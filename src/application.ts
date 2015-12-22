@@ -1,20 +1,22 @@
 'use strict'
 import {EventEmitter} from 'events'
 import * as http from 'http'
-// import * as stream from 'stream'
 import {empty} from 'statuses'
 import {compose} from './utils/compose'
-import {Context} from './context'
-// import {Request} from './request'
-// import {Response} from './response'
+import {koaContext, IContext} from './context'
+import {koaRequest, IRequest} from './request'
+import {koaResponse, IResponse} from './response'
 import {isJSON} from './utils/isJSON'
+
+const Cookies = require('cookies')
+const accepts = require('accepts')
 
 export interface IHttpCallback {
   (req: http.IncomingMessage, res: http.ServerResponse): void
 }
 
 export interface IKoaMiddleware {
-  (ctx: Context, next: Function): any
+  (ctx: IContext, next: Function): any
 }
 
 export interface IKoaError extends Error {
@@ -24,9 +26,6 @@ export interface IKoaError extends Error {
 }
 
 export class Koa extends EventEmitter {
-  /**
-   * @todo
-   */
   public keys: Array<string>
   public subdomainOffset: number
   public proxy: Boolean
@@ -52,7 +51,7 @@ export class Koa extends EventEmitter {
     const fn = compose(this.middlewares)
     return (req: http.IncomingMessage, res: http.ServerResponse): void => {
       res.statusCode = 404
-      const ctx = new Context(this, req, res)
+      const ctx = this.createContext(req, res)
       fn(ctx).then(() => this.respond(ctx)).catch(ctx.onerror)
     }
   }
@@ -74,13 +73,25 @@ export class Koa extends EventEmitter {
     return this.toJSON()
   }
 
-  // private createContext(req: http.IncomingMessage, res: http.ServerResponse): any {
-  //   const context = new Context(this, req, res)
-  //   context.onerror = context.onerror.bind(context)
-  //   return context
-  // }
+  private createContext(req: http.IncomingMessage, res: http.ServerResponse): IContext {
+    const context: IContext = Object.create(koaContext)
+    const request: IRequest = context.request = Object.create(koaRequest)
+    const response: IResponse = context.response = Object.create(koaResponse)
+    context.app = request.app = response.app = this
+    context.req = request.req = response.req = req
+    context.res = request.res = response.res = res
+    request.ctx = response.ctx = context
+    request.response = response
+    response.request = request
+    context.originalUrl = request.originalUrl = req.url
+    context.cookies = new Cookies(req, res, this.keys)
+    context.accept = request.accept = accepts(req)
+    context.state = {}
+    context.onerror = context.onerror.bind(context)
+    return context
+  }
 
-  private respond(ctx: Context): any {
+  private respond(ctx: IContext): any {
     const res = ctx.res
     const code = ctx.res.statusCode
     let body = ctx.body

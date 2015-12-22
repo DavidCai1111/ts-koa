@@ -1,6 +1,6 @@
-'use strict'
 export function compose (asyncFuncs: Array<Function>): Function {
-  return (ctx: Object, next: Function): Function => {
+  'use strict'
+  return (ctx: any, next: Function): Function => {
     let index = -1
 
     function dispath (i: number): any {

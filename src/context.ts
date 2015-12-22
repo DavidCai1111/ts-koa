@@ -1,31 +1,36 @@
 'use strict'
-// import {EventEmitter} from 'events'
 import * as http from 'http'
-import {Request} from './request'
-import {Response} from './response'
+import {IRequest} from './request'
+import {IResponse} from './response'
 import {IKoaError, Koa} from './application'
 import * as statuses from 'statuses'
 import * as createError from 'http-errors'
-import * as assert from 'http-assert'
 
-export class Context {
-  public body: any
-  public request: Request
-  public response: Response
-  public originalUrl: string
-  public state: any
-  public name: string
+const delegate = require('delegates')
+const assert = require('http-assert')
 
-  constructor(private application: Koa, public req: http.IncomingMessage, public res: http.ServerResponse) {
-    this.request = new Request(application, req, this)
-    this.response = new Response(application, res, this)
-    this.originalUrl = req.url
-    this.state = {}
-  }
+export interface IContext extends IRequest {
+  body?: any
+  request?: IRequest
+  response?: IResponse
+  originalUrl?: string
+  state?: any
+  name?: string
+  cookies?: any
+  application?: Koa
+  req?: http.IncomingMessage
+  res?: http.ServerResponse
+  onerror(err: IKoaError): void
+  toJSON(): any
+  inspect(): any
+  throw(): void
+  assert(): void
+}
 
-  onerror(err: IKoaError): void {
+export const koaContext: IContext = {
+  state: {},
+  onerror: (err) => {
     this.application.emit('error', err)
-
     this.response.type = 'text'
     if (err.code === 'ENOENT') err.status = 404
     if (typeof err.code !== 'number' || !statuses[err.status]) err.status = 500
@@ -33,9 +38,8 @@ export class Context {
     this.response.status = err.status
     this.response.length = Buffer.byteLength(msg)
     this.res.end(msg)
-  }
-
-  toJSON(): any {
+  },
+  toJSON: () => {
     return {
       request: this.request.toJSON(),
       response: this.response.toJSON(),
@@ -44,17 +48,60 @@ export class Context {
       res: '<original node res>',
       socket: '<original node socket>'
     }
-  }
-
-  inspect(): any {
+  },
+  inspect: () => {
     return this.toJSON()
-  }
-
-  throw(): void {
+  },
+  throw: () => {
     throw createError.apply(null, arguments)
-  }
-
-  assert(): void {
+  },
+  assert: () => {
     assert.apply(null, arguments)
   }
 }
+
+delegate(koaContext, 'response')
+  .method('attachment')
+  .method('redirect')
+  .method('remove')
+  .method('vary')
+  .method('set')
+  .method('append')
+  .access('status')
+  .access('message')
+  .access('body')
+  .access('length')
+  .access('type')
+  .access('lastModified')
+  .access('etag')
+  .getter('headerSent')
+  .getter('writable')
+
+delegate(koaContext, 'request')
+  .method('acceptsLanguages')
+  .method('acceptsEncodings')
+  .method('acceptsCharsets')
+  .method('accepts')
+  .method('get')
+  .method('is')
+  .access('querystring')
+  .access('idempotent')
+  .access('socket')
+  .access('search')
+  .access('method')
+  .access('query')
+  .access('path')
+  .access('url')
+  .getter('origin')
+  .getter('href')
+  .getter('subdomains')
+  .getter('protocol')
+  .getter('host')
+  .getter('hostname')
+  .getter('header')
+  .getter('headers')
+  .getter('secure')
+  .getter('stale')
+  .getter('fresh')
+  .getter('ips')
+  .getter('ip')
