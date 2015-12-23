@@ -1,6 +1,7 @@
 'use strict'
 import {IncomingMessage, ServerResponse} from 'http'
 import {format} from 'url'
+import {Socket} from 'net'
 import {Koa} from './application'
 import {IContext} from './context'
 import {IResponse} from './response';
@@ -33,7 +34,7 @@ export interface IRequest {
   query?: any
   search?: string
   idempotent?: Boolean
-  socket?: any
+  socket?: Socket
   protocol?: string
   host?: string
   hostname?: string

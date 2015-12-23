@@ -9,7 +9,7 @@ import * as createError from 'http-errors'
 const delegate = require('delegates')
 const assert = require('http-assert')
 
-export interface IContext extends IRequest {
+export interface IContext extends IRequest, IResponse {
   body?: any
   request?: IRequest
   response?: IResponse

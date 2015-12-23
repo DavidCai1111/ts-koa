@@ -29,7 +29,7 @@ export interface IResponse {
   message?: string
   type?: string
   body?: any
-  length?: number
+  length?: any
   headerSent?: Boolean
   lastModified?: Date
   etag?: string
