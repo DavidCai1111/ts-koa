@@ -1,6 +1,6 @@
 # ts-koa
 
-Basic Koa implementation in TypeScript
+Koa implementation in TypeScript
 
 ## Test
 
