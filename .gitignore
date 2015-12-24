@@ -31,4 +31,5 @@ node_modules
 # TypeScript
 src/*.js
 lib
+test
 test.ts

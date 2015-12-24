@@ -17,7 +17,8 @@ export interface IContext extends IRequest, IResponse {
   state?: any
   name?: string
   cookies?: any
-  application?: Koa
+  writable?: Boolean
+  app?: Koa
   req?: http.IncomingMessage
   res?: http.ServerResponse
   onerror(err: any): void
@@ -27,10 +28,13 @@ export interface IContext extends IRequest, IResponse {
   assert(): void
 }
 
-export const koaContext: IContext = {
+export let koaContext: IContext = {
   state: {},
-  onerror: (err) => {
-    this.application.emit('error', err)
+  onerror(err) {
+    console.log('err')
+    console.log(err)
+    if (err === null) return
+    this.app.emit('error', err)
     this.response.type = 'text'
     if (err.code === 'ENOENT') err.status = 404
     if (typeof err.code !== 'number' || !statuses[err.status]) err.status = 500
@@ -39,7 +43,7 @@ export const koaContext: IContext = {
     this.response.length = Buffer.byteLength(msg)
     this.res.end(msg)
   },
-  toJSON: () => {
+  toJSON() {
     return {
       request: this.request.toJSON(),
       response: this.response.toJSON(),
@@ -49,13 +53,13 @@ export const koaContext: IContext = {
       socket: '<original node socket>'
     }
   },
-  inspect: () => {
+  inspect() {
     return this.toJSON()
   },
-  throw: () => {
+  throw() {
     throw createError.apply(null, arguments)
   },
-  assert: () => {
+  assert() {
     assert.apply(null, arguments)
   }
 }

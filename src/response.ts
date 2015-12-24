@@ -47,7 +47,7 @@ export interface IResponse {
 }
 
 export const koaResponse: IResponse = {
-  _body: null,
+  // _body: null,
   _explicitStatus: false,
   get socket(): Socket {
     return this.ctx.request.socket
@@ -66,7 +66,7 @@ export const koaResponse: IResponse = {
     this._explicitStatus = true
     this.res.statusCode = code
     this.res.statusMessage = statuses[code]
-    if (this._body || statuses.empty[code]) this._body = null
+    if (this._body && statuses.empty[code]) this._body = null
   },
   get message(): string {
     return this.res.statusMessage
@@ -88,10 +88,14 @@ export const koaResponse: IResponse = {
     }
   },
   get body(): any {
+    console.log('in get body')
+    console.log(this._body)
     return this._body
   },
   set body(val: any) {
     // const original: any = this._body
+    console.log('set body: ')
+    console.log(val)
     this._body = val
 
     if (val === null) {
@@ -103,12 +107,12 @@ export const koaResponse: IResponse = {
     }
 
     if (!this._explicitStatus) this.status = 200
-    const setType: Boolean = !this.get('Content-Type')
+    const setType: Boolean = !this.header['Content-Type']
 
     if (typeof val === 'string') {
-      if (setType) this.set('Content-Type', /^\s*</.test(String(val)) ? 'html' : 'text')
+      if (setType) this.set('Content-Type', /^\s*</.test(val) ? 'html' : 'text')
 
-      this.set('Content-Length', String(Buffer.byteLength(String(val))))
+      this.set('Content-Length', String(Buffer.byteLength(val)))
       return
     }
 
@@ -119,6 +123,7 @@ export const koaResponse: IResponse = {
     }
 
     this.remove('Content-Length')
+    this.type = 'json'
   },
   get length(): number {
     const length = this.get('Content-Length')
@@ -135,7 +140,7 @@ export const koaResponse: IResponse = {
     return ~~length
   },
   set length(val: number) {
-    this.set('Content-Length', String(val))
+    this.set('Content-Length', val)
   },
   get headerSent(): Boolean {
     return this.res.headersSent
@@ -159,16 +164,16 @@ export const koaResponse: IResponse = {
     if (!socket) return false
     return socket.writable
   },
-  vary: (field: string) => {
+  vary(field: string) {
     vary(this.res, field)
   },
-  is: (types: any) => {
+  is(types: any) {
     const type = this.type
     if (!types) return type || false
     if (!Array.isArray(types)) types = [].slice.call(arguments)
     return typeis(type, types)
   },
-  redirect: (url: string, alt: string) => {
+  redirect(url: string, alt: string) {
     if (url === 'back') url = this.ctx.request.get('Referrer') || alt || '/'
     this.set('Location', url)
 
@@ -182,15 +187,15 @@ export const koaResponse: IResponse = {
     this.type = 'text/plain; charset=utf-8'
     this.body = `Redirecting to ${url}.`
   },
-  attachment: (filename?: string) => {
+  attachment(filename?: string) {
     if (filename) this.type = extname(filename)
     this.set('Content-Disposition', contentDisposition(filename))
   },
-  get: (field: string) => {
+  get(field: string) {
     field = field.toLowerCase()
     return this.res.getHeader(field) || ''
   },
-  set: (field: any, val: any) => {
+  set(field: any, val: any) {
     if (2 === arguments.length) {
       if (Array.isArray(val)) {
         val = val.map(String)
@@ -204,10 +209,10 @@ export const koaResponse: IResponse = {
       }
     }
   },
-  remove: (field: string) => {
+  remove(field: string) {
     this.res.removeHeader(field)
   },
-  append: (field: string, val: any) => {
+  append(field: string, val: any) {
     const prev = this.get(field)
 
     if (prev) {
@@ -217,14 +222,14 @@ export const koaResponse: IResponse = {
     }
     return this.set(field, val)
   },
-  toJSON: () => {
+  toJSON() {
     return {
       status: this.status,
       message: this.message,
       header: this.header
     }
   },
-  inspect: () => {
+  inspect() {
     if (!this.res) return
     const object = this.toJSON()
     object.body = this.body

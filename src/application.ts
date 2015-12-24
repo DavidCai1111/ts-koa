@@ -10,6 +10,7 @@ import {isJSON} from './utils/isJSON'
 
 const Cookies = require('cookies')
 const accepts = require('accepts')
+const onFinished = require('on-finished')
 
 export class Koa extends EventEmitter {
   public keys: Array<string>
@@ -34,7 +35,7 @@ export class Koa extends EventEmitter {
     this.response = Object.create(koaResponse)
   }
 
-  use(middleware: (ctx: IContext, next: Function) => any): this {
+  use(middleware: (ctx: IContext, next: Function) => any): Koa {
     this.middlewares.push(middleware)
     return this
   }
@@ -44,7 +45,8 @@ export class Koa extends EventEmitter {
     return (req: http.IncomingMessage, res: http.ServerResponse): void => {
       res.statusCode = 404
       const ctx = this.createContext(req, res)
-      fn(ctx).then(() => this.respond(ctx)).catch(ctx.onerror)
+      onFinished(res, ctx.onerror)
+      fn(ctx).then(() => respond(ctx)).catch(ctx.onerror)
     }
   }
 
@@ -72,9 +74,9 @@ export class Koa extends EventEmitter {
   }
 
   private createContext(req: http.IncomingMessage, res: http.ServerResponse): IContext {
-    const context: IContext = Object.create(koaContext)
-    const request: IRequest = context.request = Object.create(koaRequest)
-    const response: IResponse = context.response = Object.create(koaResponse)
+    const context: IContext = Object.create(this.context)
+    const request: IRequest = context.request = Object.create(this.request)
+    const response: IResponse = context.response = Object.create(this.response)
     context.app = request.app = response.app = this
     context.req = request.req = response.req = req
     context.res = request.res = response.res = res
@@ -88,33 +90,33 @@ export class Koa extends EventEmitter {
     context.onerror = context.onerror.bind(context)
     return context
   }
+}
 
-  private respond(ctx: IContext): any {
-    const res = ctx.res
-    const code = ctx.res.statusCode
-    let body = ctx.body
-
-    if (empty[code]) {
-      body = null
-      return res.end()
-    }
-
-    if (ctx.request.method === 'HEAD') {
-      if (isJSON(body)) ctx.response.length = Buffer.byteLength(JSON.stringify(body))
-      return res.end()
-    }
-
-    if (body === null) {
-      ctx.response.type = 'text'
-      ctx.response.length = Buffer.byteLength(String(code))
-      return res.end(body)
-    }
-
-    if (Buffer.isBuffer(body)) return res.end(body)
-    if (typeof body === 'string') return res.end(body)
-
-    body = JSON.stringify(body)
-    ctx.response.length = Buffer.byteLength(String(code))
-    res.end(body)
+function respond(ctx: IContext): any {
+  'use strict'
+  const res = ctx.res
+  const code = ctx.res.statusCode
+  if (res.headersSent) return
+  let body = ctx.response.body
+  if (empty[code]) {
+    body = null
+    return res.end()
   }
+  if (ctx.request.method === 'HEAD') {
+    if (isJSON(body)) ctx.length = Buffer.byteLength(JSON.stringify(body))
+    return res.end()
+  }
+
+  if (body === null) {
+    ctx.type = 'text'
+    body = ctx.message || String(code)
+    ctx.length = Buffer.byteLength(String(code))
+    return res.end(body)
+  }
+
+  if (Buffer.isBuffer(body)) return res.end(body)
+  if (typeof body === 'string') return res.end(body)
+  body = JSON.stringify(body)
+  ctx.length = Buffer.byteLength(String(code))
+  res.end(body)
 }

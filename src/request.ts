@@ -8,7 +8,6 @@ import {IResponse} from './response';
 const qs = require('parseurl')
 const fresh = require('fresh')
 const contentType = require('content-type')
-const accepts = require('accepts')
 const typeis = require('type-is')
 
 const parse = qs.parse
@@ -57,7 +56,7 @@ export interface IRequest {
   get?: (field: string) => string
 }
 
-export const koaRequest: IRequest = {
+export let koaRequest: IRequest = {
   get(field: string): string {
     const req = this.req
     switch (field = field.toLowerCase()) {
@@ -93,9 +92,6 @@ export const koaRequest: IRequest = {
   },
   get origin(): string {
     return `${this.protocol}://${this.host}`
-  },
-  get originalUrl(): string {
-    return this.req.url
   },
   get href(): string {
     if (/^https?:\/\//i.test(this.originalUrl)) return this.originalUrl
@@ -205,39 +201,36 @@ export const koaRequest: IRequest = {
       .reverse()
       .slice(offset)
   },
-  get accept(): any {
-    return accepts(this.req)
-  },
   get type(): string {
     const type = this.get('Content-Type')
     if (!type) return ''
     return type.split(';')[0]
   },
-  accepts: () => {
+  accepts() {
     return this.accept.types.apply(this.accept, arguments)
   },
-  acceptsEncodings: () => {
+  acceptsEncodings() {
     return this.accept.encodings.apply(this.accept, arguments);
   },
-  acceptsCharsets: () => {
+  acceptsCharsets() {
     return this.accept.charsets.apply(this.accept, arguments);
   },
-  acceptsLanguages: () => {
+  acceptsLanguages() {
     return this.accept.languages.apply(this.accept, arguments);
   },
-  is: (types: any) => {
+  is(types: any) {
     if (!types) return typeis(this.req)
     if (!Array.isArray(types)) types = [].slice.call(arguments)
     return typeis(this.req, types)
   },
-  toJSON: () => {
+  toJSON() {
     return {
       method: this.method,
       url: this.url,
       header: this.header
     }
   },
-  inspect: () => {
+  inspect() {
     if (!this.req) return
     return this.toJSON()
   }

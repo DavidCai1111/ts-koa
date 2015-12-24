@@ -1,6 +1,8 @@
+import {IContext} from '../context'
+
 export function compose (asyncFuncs: Array<Function>): Function {
   'use strict'
-  return (ctx: any, next: Function): Function => {
+  return (ctx: IContext, next: Function): Function => {
     let index = -1
 
     function dispath (i: number): any {
