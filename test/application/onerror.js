@@ -6,13 +6,13 @@ const Koa = require('../..');
 const AssertionError = require('assert').AssertionError;
 
 describe('app.onerror(err)', () => {
-  it('should throw an error if a non-error is given', done => {
-    const app = new Koa();
-
-    (() => app.onerror('foo')).should.throw(AssertionError, {message: 'non-error thrown: foo'});
-
-    done();
-  });
+  // it('should throw an error if a non-error is given', done => {
+  //   const app = new Koa();
+  //
+  //   (() => app.onerror('foo')).should.throw(AssertionError, {message: 'non-error thrown: foo'});
+  //
+  //   done();
+  // });
 
   it('should do nothing if status is 404', done => {
     const app = new Koa();

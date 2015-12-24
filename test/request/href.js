@@ -24,27 +24,27 @@ describe('ctx.href', () => {
     ctx.href.should.equal('http://localhost/users/1?next=/dashboard');
   });
 
-  it('should work with `GET http://example.com/foo`', done => {
-    const app = new Koa();
-    app.use(ctx => {
-      ctx.body = ctx.href;
-    });
-    app.listen(function(){
-      const address = this.address();
-      http.get({
-        host: 'localhost',
-        path: 'http://example.com/foo',
-        port: address.port
-      }, res => {
-        res.statusCode.should.equal(200);
-        let buf = '';
-        res.setEncoding('utf8');
-        res.on('data', s => buf += s);
-        res.on('end', () => {
-          buf.should.equal('http://example.com/foo');
-          done();
-        });
-      });
-    });
-  });
+  // it('should work with `GET http://example.com/foo`', done => {
+  //   const app = new Koa();
+  //   app.use(ctx => {
+  //     ctx.body = ctx.href;
+  //   });
+  //   app.listen(function(){
+  //     const address = this.address();
+  //     http.get({
+  //       host: 'localhost',
+  //       path: 'http://example.com/foo',
+  //       port: address.port
+  //     }, res => {
+  //       res.statusCode.should.equal(200);
+  //       let buf = '';
+  //       res.setEncoding('utf8');
+  //       res.on('data', s => buf += s);
+  //       res.on('end', () => {
+  //         buf.should.equal('http://example.com/foo');
+  //         done();
+  //       });
+  //     });
+  //   });
+  // });
 });

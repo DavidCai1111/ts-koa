@@ -8,7 +8,6 @@ describe('response.is(type)', () => {
   it('should ignore params', () => {
     const res = context().response;
     res.type = 'text/html; charset=utf-8';
-
     res.is('text/*').should.equal('text/html');
   });
 

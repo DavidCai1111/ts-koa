@@ -3,7 +3,7 @@
 
 const request = require('supertest');
 const assert = require('assert');
-const Koa = require('../../index');
+const Koa = require('../..');
 
 describe('app.request', () => {
   const app1 = new Koa();

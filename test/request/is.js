@@ -6,8 +6,13 @@ const assert = require('assert');
 
 describe('ctx.is(type)', () => {
   it('should ignore params', () => {
+    console.log('1233')
+
     const ctx = context();
+    console.log('123')
+    console.log(ctx.header)
     ctx.header['content-type'] = 'text/html; charset=utf-8';
+    console.log(ctx.header)
     ctx.header['transfer-encoding'] = 'chunked';
 
     ctx.is('text/*').should.equal('text/html');
