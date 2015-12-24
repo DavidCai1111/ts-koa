@@ -2,7 +2,7 @@
 import * as http from 'http'
 import {IRequest} from './request'
 import {IResponse} from './response'
-import {IKoaError, Koa} from './application'
+import {Koa} from './application'
 import * as statuses from 'statuses'
 import * as createError from 'http-errors'
 
@@ -20,7 +20,7 @@ export interface IContext extends IRequest, IResponse {
   application?: Koa
   req?: http.IncomingMessage
   res?: http.ServerResponse
-  onerror(err: IKoaError): void
+  onerror(err: any): void
   toJSON(): any
   inspect(): any
   throw(): void

@@ -17,7 +17,8 @@
     "outDir": "lib"
   },
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "tasks"
   ],
-  "compileOnSave": false
+  "compileOnSave": true
 }

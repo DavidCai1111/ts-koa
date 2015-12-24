@@ -453,7 +453,7 @@ declare module "http" {
         path?: string;
         headers?: { [key: string]: any };
         auth?: string;
-        agent?: Agent;
+        agent?: Agent|boolean;
     }
 
     export interface Server extends events.EventEmitter {
@@ -472,8 +472,6 @@ declare module "http" {
         connection: net.Socket;
     }
     export interface ServerResponse extends events.EventEmitter, stream.Writable {
-        _headers: string
-        headersSent: Boolean
         // Extended base methods
         write(buffer: Buffer): boolean;
         write(buffer: Buffer, cb?: Function): boolean;
@@ -551,41 +549,41 @@ declare module "http" {
      */
     export interface ClientResponse extends IncomingMessage { }
 
-  export interface AgentOptions {
-    /**
-     * Keep sockets around in a pool to be used by other requests in the future. Default = false
-     */
-    keepAlive?: boolean;
-    /**
-     * When using HTTP KeepAlive, how often to send TCP KeepAlive packets over sockets being kept alive. Default = 1000.
-     * Only relevant if keepAlive is set to true.
-     */
-    keepAliveMsecs?: number;
-    /**
-     * Maximum number of sockets to allow per host. Default for Node 0.10 is 5, default for Node 0.12 is Infinity
-     */
-    maxSockets?: number;
-    /**
-     * Maximum number of sockets to leave open in a free state. Only relevant if keepAlive is set to true. Default = 256.
-     */
-    maxFreeSockets?: number;
-  }
+	export interface AgentOptions {
+		/**
+		 * Keep sockets around in a pool to be used by other requests in the future. Default = false
+		 */
+		keepAlive?: boolean;
+		/**
+		 * When using HTTP KeepAlive, how often to send TCP KeepAlive packets over sockets being kept alive. Default = 1000.
+		 * Only relevant if keepAlive is set to true.
+		 */
+		keepAliveMsecs?: number;
+		/**
+		 * Maximum number of sockets to allow per host. Default for Node 0.10 is 5, default for Node 0.12 is Infinity
+		 */
+		maxSockets?: number;
+		/**
+		 * Maximum number of sockets to leave open in a free state. Only relevant if keepAlive is set to true. Default = 256.
+		 */
+		maxFreeSockets?: number;
+	}
 
     export class Agent {
-    maxSockets: number;
-    sockets: any;
-    requests: any;
+		maxSockets: number;
+		sockets: any;
+		requests: any;
 
-    constructor(opts?: AgentOptions);
+		constructor(opts?: AgentOptions);
 
-    /**
-     * Destroy any sockets that are currently in use by the agent.
-     * It is usually not necessary to do this. However, if you are using an agent with KeepAlive enabled,
-     * then it is best to explicitly shut down the agent when you know that it will no longer be used. Otherwise,
-     * sockets may hang open for quite a long time before the server terminates them.
-     */
-    destroy(): void;
-  }
+		/**
+		 * Destroy any sockets that are currently in use by the agent.
+		 * It is usually not necessary to do this. However, if you are using an agent with KeepAlive enabled,
+		 * then it is best to explicitly shut down the agent when you know that it will no longer be used. Otherwise,
+		 * sockets may hang open for quite a long time before the server terminates them.
+		 */
+		destroy(): void;
+	}
 
     export var METHODS: string[];
 
@@ -909,7 +907,11 @@ declare module "child_process" {
     export function fork(modulePath: string, args?: string[], options?: {
         cwd?: string;
         env?: any;
-        encoding?: string;
+        execPath?: string;
+        execArgv?: string[];
+        silent?: boolean;
+        uid?: number;
+        gid?: number;
     }): ChildProcess;
     export function spawnSync(command: string, args?: string[], options?: {
         cwd?: string;
@@ -1079,7 +1081,6 @@ declare module "dgram" {
     export function createSocket(type: string, callback?: (msg: Buffer, rinfo: RemoteInfo) => void): Socket;
 
     interface Socket extends events.EventEmitter {
-        writeable: Boolean
         send(buf: Buffer, offset: number, length: number, port: number, address: string, callback?: (error: Error, bytes: number) => void): void;
         bind(port: number, address?: string, callback?: () => void): void;
         close(): void;
@@ -1538,6 +1539,8 @@ declare module "tls" {
     var CLIENT_RENEG_WINDOW: number;
 
     export interface TlsOptions {
+        host?: string;
+        port?: number;
         pfx?: any;   //string or buffer
         key?: any;   //string or buffer
         passphrase?: string;

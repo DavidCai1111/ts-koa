@@ -11,26 +11,15 @@ import {isJSON} from './utils/isJSON'
 const Cookies = require('cookies')
 const accepts = require('accepts')
 
-export interface IHttpCallback {
-  (req: http.IncomingMessage, res: http.ServerResponse): void
-}
-
-export interface IKoaMiddleware {
-  (ctx: IContext, next: Function): any
-}
-
-export interface IKoaError extends Error {
-  status: number
-  expose: Boolean
-  code: any
-}
-
 export class Koa extends EventEmitter {
   public keys: Array<string>
   public subdomainOffset: number
   public proxy: Boolean
   public server: http.Server
   public env: string
+  public context: IContext
+  public request: IRequest
+  public response: IResponse
 
   private middlewares: Array<Function>
 
@@ -40,14 +29,17 @@ export class Koa extends EventEmitter {
     this.subdomainOffset = 2
     this.proxy = false
     this.env = process.env.NODE_ENV || 'development'
+    this.context = Object.create(koaContext)
+    this.request = Object.create(koaRequest)
+    this.response = Object.create(koaResponse)
   }
 
-  use(middleware: IKoaMiddleware): Koa {
+  use(middleware: (ctx: IContext, next: Function) => any): this {
     this.middlewares.push(middleware)
     return this
   }
 
-  callback(): IHttpCallback {
+  callback(): (req: http.IncomingMessage, res: http.ServerResponse) => void {
     const fn = compose(this.middlewares)
     return (req: http.IncomingMessage, res: http.ServerResponse): void => {
       res.statusCode = 404
@@ -71,6 +63,12 @@ export class Koa extends EventEmitter {
 
   inspect(): any {
     return this.toJSON()
+  }
+
+  onerror(err: any): void {
+    if (err.status === 404 || err.expose) return
+    const message: string = err.stack || err.toString()
+    console.error(`\n${message.replace(/^/gm, ' ')}\n`)
   }
 
   private createContext(req: http.IncomingMessage, res: http.ServerResponse): IContext {
@@ -119,10 +117,4 @@ export class Koa extends EventEmitter {
     ctx.response.length = Buffer.byteLength(String(code))
     res.end(body)
   }
-
-  // private onerror(err: IKoaError): void {
-  //   if (err.status === 404 || err.expose) return
-  //   const message: string = err.stack || err.toString()
-  //   console.error(`\n${message.replace(/^/gm, ' ')}\n`)
-  // }
 }

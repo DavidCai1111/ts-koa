@@ -2,10 +2,10 @@
   "name": "ts-koa",
   "version": "0.0.1",
   "description": "Koa implementation in TypeScript",
-  "main": "./lib/application.js",
+  "main": "lib/index.js",
   "scripts": {
     "postinstall": "tsd install && ts-node ./tasks/tsd.ts",
-    "test": "tslint -c ./tslint.json src/**.ts"
+    "test": "tslint -c ./tslint.json src/**.ts && rm -rf lib && tsc -p . --rootDir src && make test"
   },
   "author": "DavidCai1993",
   "license": "MIT",
@@ -25,9 +25,17 @@
     "vary": "^1.1.0"
   },
   "devDependencies": {
+    "babel": "^6.3.13",
+    "istanbul": "^0.4.1",
+    "make-lint": "^1.0.1",
+    "mocha": "^2.3.4",
+    "should": "^8.0.2",
+    "should-http": "0.0.4",
+    "supertest": "^1.1.0",
+    "test-console": "^1.0.0",
     "ts-node": "^0.5.4",
     "tsd": "^0.6.5",
     "tslint": "^3.2.1",
-    "typescript": "^1.8.0"
+    "typescript": "^1.8.0-dev.20151222"
   }
 }
