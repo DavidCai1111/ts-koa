@@ -130,7 +130,6 @@ function respond(ctx: IContext): any {
   if (typeof body === 'string') return res.end(body)
   if (body instanceof Stream) return body.pipe(res)
 
-  console.log('json')
   body = JSON.stringify(body)
   ctx.length = Buffer.byteLength(body)
   res.end(body)

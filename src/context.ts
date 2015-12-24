@@ -33,8 +33,6 @@ export const koaContext: IContext = {
   state: {},
   onerror(err) {
     if (err === null) return
-    console.log('err:')
-    console.log(err)
     if (!(err instanceof Error)) err = new Error(`non-error thrown: ${err}`)
     this.app.emit('error', err)
 
