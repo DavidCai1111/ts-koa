@@ -1,6 +1,7 @@
 'use strict'
 import {EventEmitter} from 'events'
 import * as http from 'http'
+import {Stream} from 'stream'
 import {empty} from 'statuses'
 import {compose} from './utils/compose'
 import {koaContext, IContext} from './context'
@@ -21,6 +22,7 @@ export class Koa extends EventEmitter {
   public context: IContext
   public request: IRequest
   public response: IResponse
+  public silent: Boolean
 
   private middlewares: Array<Function>
 
@@ -29,6 +31,7 @@ export class Koa extends EventEmitter {
     this.middlewares = []
     this.subdomainOffset = 2
     this.proxy = false
+    this.silent = false
     this.env = process.env.NODE_ENV || 'development'
     this.context = Object.create(koaContext)
     this.request = Object.create(koaRequest)
@@ -42,6 +45,9 @@ export class Koa extends EventEmitter {
 
   callback(): (req: http.IncomingMessage, res: http.ServerResponse) => void {
     const fn = compose(this.middlewares)
+
+    if (!this.listeners('error').length) this.on('error', this.onerror)
+
     return (req: http.IncomingMessage, res: http.ServerResponse): void => {
       res.statusCode = 404
       const ctx = this.createContext(req, res)
@@ -69,8 +75,11 @@ export class Koa extends EventEmitter {
 
   onerror(err: any): void {
     if (err.status === 404 || err.expose) return
+    if (this.silent) return
     const message: string = err.stack || err.toString()
-    console.error(`\n${message.replace(/^/gm, ' ')}\n`)
+    console.error()
+    console.error(message.replace(/^/gm, '  '))
+    console.error()
   }
 
   private createContext(req: http.IncomingMessage, res: http.ServerResponse): IContext {
@@ -83,23 +92,26 @@ export class Koa extends EventEmitter {
     request.ctx = response.ctx = context
     request.response = response
     response.request = request
+    context.onerror = context.onerror.bind(context)
     context.originalUrl = request.originalUrl = req.url
     context.cookies = new Cookies(req, res, this.keys)
     context.accept = request.accept = accepts(req)
     context.state = {}
-    context.onerror = context.onerror.bind(context)
     return context
   }
 }
 
 function respond(ctx: IContext): any {
   'use strict'
+  if (false === ctx.respond) return
   const res = ctx.res
+  if (res.headersSent || !ctx.writable) return
+
   const code = ctx.res.statusCode
-  if (res.headersSent) return
   let body = ctx.response.body
+
   if (empty[code]) {
-    body = null
+    ctx.body = null
     return res.end()
   }
   if (ctx.request.method === 'HEAD') {
@@ -107,16 +119,19 @@ function respond(ctx: IContext): any {
     return res.end()
   }
 
-  if (body === null) {
+  if (body === null || body === undefined) {
     ctx.type = 'text'
     body = ctx.message || String(code)
-    ctx.length = Buffer.byteLength(String(code))
+    ctx.length = Buffer.byteLength(body)
     return res.end(body)
   }
 
   if (Buffer.isBuffer(body)) return res.end(body)
   if (typeof body === 'string') return res.end(body)
+  if (body instanceof Stream) return body.pipe(res)
+
+  console.log('json')
   body = JSON.stringify(body)
-  ctx.length = Buffer.byteLength(String(code))
+  ctx.length = Buffer.byteLength(body)
   res.end(body)
 }

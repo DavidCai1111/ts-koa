@@ -1,17 +1,15 @@
 'use strict'
 import {IncomingMessage, ServerResponse} from 'http'
-import {format} from 'url'
+import {format as stringify} from 'url'
 import {Socket} from 'net'
 import {Koa} from './application'
 import {IContext} from './context'
 import {IResponse} from './response';
-const qs = require('parseurl')
+const qs = require('querystring')
 const fresh = require('fresh')
 const contentType = require('content-type')
 const typeis = require('type-is')
-
-const parse = qs.parse
-const stringify = qs.stringify
+const parse = require('parseurl')
 
 export interface IRequest {
   _querycache?: string
@@ -105,6 +103,8 @@ export let koaRequest: IRequest = {
     if (url.pathname === val) return
     url.pathname = val
     url.path = null
+
+    this.url = stringify(url)
   },
   get querystring(): string {
     if (!this.req) return ''
@@ -116,15 +116,15 @@ export let koaRequest: IRequest = {
     url.search = val
     url.path = null
 
-    this.url = format(url)
+    this.url = stringify(url)
   },
   get query(): any {
-    const querystring = this.querystring
-    const cache: Object = this._querycache || {}
-    return cache[querystring] || (cache[querystring] = parse(querystring))
+    const str = this.querystring
+    const c = this._querycache = this._querycache || {}
+    return c[str] || (c[str] = qs.parse(str))
   },
   set query(obj: any) {
-    this.querystring = stringify(obj)
+    this.querystring = qs.stringify(obj)
   },
   get search(): string {
     if (!this.querystring) return ''

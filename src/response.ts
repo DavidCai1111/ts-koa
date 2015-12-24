@@ -12,7 +12,11 @@ import {IRequest} from './request'
 const getType = require('mime-types').contentType
 const vary = require('vary')
 const contentDisposition = require('content-disposition')
-const typeis = require('type-is')
+const typeis = require('type-is').is
+const onFinished = require('on-finished')
+const ensureErrorHandler = require('error-inject')
+const destroy = require('destroy')
+const escape = require('escape-html')
 
 export interface IResponse {
   _body?: any
@@ -33,7 +37,7 @@ export interface IResponse {
   headerSent?: Boolean
   lastModified?: Date
   etag?: string
-  writeable?: Boolean
+  writable?: Boolean
   is?: (types: any) => any
   redirect?: (url: string, alt: string) => void
   attachment?: (filename?: string) => void
@@ -47,8 +51,6 @@ export interface IResponse {
 }
 
 export const koaResponse: IResponse = {
-  // _body: null,
-  _explicitStatus: false,
   get socket(): Socket {
     return this.ctx.request.socket
   },
@@ -66,10 +68,10 @@ export const koaResponse: IResponse = {
     this._explicitStatus = true
     this.res.statusCode = code
     this.res.statusMessage = statuses[code]
-    if (this._body && statuses.empty[code]) this._body = null
+    if (this.body && statuses.empty[code]) this.body = null
   },
   get message(): string {
-    return this.res.statusMessage
+    return this.res.statusMessage || statuses[this.status]
   },
   set message(val: string) {
     this.res.statusMessage = val
@@ -80,22 +82,18 @@ export const koaResponse: IResponse = {
     return type.split(';')[0]
   },
   set type(val: string) {
-    const type: string = getType(val)
+    const type: any = getType(val) || false
     if (type) {
-      this.set('Content-Type', val)
+      this.set('Content-Type', type)
     } else {
       this.remove('Content-Type')
     }
   },
   get body(): any {
-    console.log('in get body')
-    console.log(this._body)
     return this._body
   },
   set body(val: any) {
-    // const original: any = this._body
-    console.log('set body: ')
-    console.log(val)
+    const original: any = this._body
     this._body = val
 
     if (val === null) {
@@ -107,18 +105,27 @@ export const koaResponse: IResponse = {
     }
 
     if (!this._explicitStatus) this.status = 200
-    const setType: Boolean = !this.header['Content-Type']
+    const setType: Boolean = !this.get('Content-Type')
 
     if (typeof val === 'string') {
-      if (setType) this.set('Content-Type', /^\s*</.test(val) ? 'html' : 'text')
+      if (setType) this.type = /^\s*</.test(val) ? 'html' : 'text'
 
-      this.set('Content-Length', String(Buffer.byteLength(val)))
+      this.length = Buffer.byteLength(val)
       return
     }
 
     if (Buffer.isBuffer(val)) {
-      if (setType) this.set('Content-Type', 'bin')
-      this.set('Content-Length', String(val.length))
+      if (setType) this.type = 'bin'
+      this.length = val.length
+      return
+    }
+
+    if ('function' === typeof val.pipe) {
+      onFinished(this.res, destroy.bind(null, val))
+      ensureErrorHandler(val, this.ctx.onerror)
+
+      if (null != original && original !== val) this.remove('Content-Length')
+      if (setType) this.type = 'bin'
       return
     }
 
@@ -126,15 +133,14 @@ export const koaResponse: IResponse = {
     this.type = 'json'
   },
   get length(): number {
-    const length = this.get('Content-Length')
+    const length = this.header['content-length']
     const body = this.body
-
-    if (length === null) {
-      if (!body) return 0
-      if (typeof body === 'string') return Buffer.byteLength(String(body))
+    if (length == null) {
+      if (!body) return
+      if (typeof body === 'string') return Buffer.byteLength(body)
       if (Buffer.isBuffer(body)) return body.length
       if (isJSON(body)) return Buffer.byteLength(JSON.stringify(body))
-      return 0
+      return
     }
 
     return ~~length
@@ -149,7 +155,8 @@ export const koaResponse: IResponse = {
     const date = this.get('last-modified')
     if (date) return new Date(date)
   },
-  set lastModified(val: Date) {
+  set lastModified(val: any) {
+    if ('string' === typeof val) val = new Date(val)
     this.set('Last-Modified', val.toUTCString())
   },
   get etag() {
@@ -159,7 +166,7 @@ export const koaResponse: IResponse = {
     if (!/^(W\/)?"/.test(val)) val = `"${val}"`
     this.set('ETag', val)
   },
-  get writeable(): Boolean {
+  get writable(): Boolean {
     const socket = this.socket
     if (!socket) return false
     return socket.writable
@@ -178,7 +185,8 @@ export const koaResponse: IResponse = {
     this.set('Location', url)
 
     if (!statuses.redirect[this.status]) this.status = 302
-    if (this.ctx.request.accept('html')) {
+    if (this.ctx.accepts('html')) {
+      url = escape(url)
       this.type = 'text/html; charset=utf-8'
       this.body = `Redirecting to <a href="${url}">${url}</a>.`
       return
@@ -193,7 +201,7 @@ export const koaResponse: IResponse = {
   },
   get(field: string) {
     field = field.toLowerCase()
-    return this.res.getHeader(field) || ''
+    return this.header[field] || ''
   },
   set(field: any, val: any) {
     if (2 === arguments.length) {
@@ -204,7 +212,7 @@ export const koaResponse: IResponse = {
       }
       this.res.setHeader(field, val)
     } else {
-      for (const key of field) {
+      for (const key in field) {
         this.set(key, field[key])
       }
     }

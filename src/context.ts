@@ -18,6 +18,7 @@ export interface IContext extends IRequest, IResponse {
   name?: string
   cookies?: any
   writable?: Boolean
+  respond?: Boolean
   app?: Koa
   req?: http.IncomingMessage
   res?: http.ServerResponse
@@ -28,19 +29,30 @@ export interface IContext extends IRequest, IResponse {
   assert(): void
 }
 
-export let koaContext: IContext = {
+export const koaContext: IContext = {
   state: {},
   onerror(err) {
-    console.log('err')
-    console.log(err)
     if (err === null) return
+    console.log('err:')
+    console.log(err)
+    if (!(err instanceof Error)) err = new Error(`non-error thrown: ${err}`)
     this.app.emit('error', err)
-    this.response.type = 'text'
+
+    if (this.headerSent || !this.writable) {
+      err.headerSent = true
+      return
+    }
+
+    this.res._headers = {}
+    this.type = 'text'
+
     if (err.code === 'ENOENT') err.status = 404
-    if (typeof err.code !== 'number' || !statuses[err.status]) err.status = 500
-    const msg = err.expose ? err.message : statuses[err.status]
-    this.response.status = err.status
-    this.response.length = Buffer.byteLength(msg)
+    if (typeof err.status !== 'number' || !statuses[err.status]) err.status = 500
+
+    const code = statuses[err.status]
+    const msg = err.expose ? err.message : code
+    this.status = err.status
+    this.length = Buffer.byteLength(msg)
     this.res.end(msg)
   },
   toJSON() {
@@ -59,9 +71,7 @@ export let koaContext: IContext = {
   throw() {
     throw createError.apply(null, arguments)
   },
-  assert() {
-    assert.apply(null, arguments)
-  }
+  assert: assert
 }
 
 delegate(koaContext, 'response')
